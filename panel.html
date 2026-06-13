@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>拾光 · 投命</title>
+<style>
+  :root{
+    --ink:#0a0812; --panel:#1a1626; --panel2:#221c30; --track:#2c2638;
+    --gold:#d9b772; --gold-bright:#f2d89c; --gold-dim:#7c6a44;
+    --cinnabar:#c75543; --jade:#74b394; --violet:#9d8de0;
+    --silk:#ece1c9; --silk-dim:#a99e87; --line:rgba(217,183,114,.22);
+    --brush:'STKaiti','KaiTi SC','KaiTi','Noto Serif CJK SC','Songti SC',serif;
+    --serif:'Songti SC','STSong','Noto Serif CJK SC',serif;
+    --sans:'PingFang SC','Noto Sans CJK SC','Heiti SC',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:radial-gradient(120% 80% at 50% -10%,#1c1733,transparent 55%),
+    radial-gradient(90% 60% at 50% 120%,#1a1228,transparent 50%),var(--ink);
+    color:var(--silk);font-family:var(--sans);min-height:100%;display:flex;justify-content:center;
+    overflow-x:hidden;-webkit-font-smoothing:antialiased}
+  .sky{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+  .mote{position:absolute;width:3px;height:3px;border-radius:50%;background:var(--gold-bright);opacity:0;
+    box-shadow:0 0 6px 1px rgba(242,216,156,.7);animation:rise linear infinite}
+  @keyframes rise{0%{transform:translateY(20px) scale(.6);opacity:0}15%{opacity:.7}85%{opacity:.5}
+    100%{transform:translateY(-100vh) scale(1);opacity:0}}
+
+  .wrap{position:relative;z-index:1;width:100%;max-width:560px;padding:28px 20px 60px;
+    display:flex;flex-direction:column;align-items:center}
+  .eyebrow{font-family:var(--serif);letter-spacing:.55em;font-size:11px;color:var(--gold-dim);padding-left:.55em;margin-bottom:6px}
+  .title{font-family:var(--brush);font-size:56px;line-height:1;color:var(--gold-bright);text-shadow:0 0 24px rgba(217,183,114,.35);margin-bottom:4px}
+  .sub{font-family:var(--serif);font-size:12.5px;color:var(--silk-dim);letter-spacing:.18em}
+  .hud{margin-top:12px;display:flex;border:1px solid var(--line);border-radius:3px;overflow:hidden}
+  .hud-i{font-family:var(--serif);font-size:11px;letter-spacing:.14em;color:var(--silk-dim);padding:6px 14px;border-left:1px solid var(--line)}
+  .hud-i:first-child{border-left:none}
+  .hud-i b{color:var(--gold-bright);font-weight:500}
+  .hud-i.life b{color:var(--cinnabar);letter-spacing:.05em}
+
+  .view{display:none;width:100%;flex-direction:column;align-items:center}
+  .view.active{display:flex;animation:fade .5s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+  /* compass */
+  .stage{margin:26px 0 8px;position:relative;width:240px;height:240px;display:flex;align-items:center;justify-content:center}
+  .ring{position:absolute;border-radius:50%;border:1px solid var(--line)}
+  .ring.r1{inset:0;border-color:rgba(217,183,114,.30)}
+  .ring.r2{inset:18px;border-style:dashed;border-color:rgba(157,141,224,.28)}
+  .ring.r3{inset:40px;border-color:rgba(217,183,114,.16)}
+  .glyphs{position:absolute;inset:0;animation:spin 60s linear infinite}
+  .glyphs span{position:absolute;top:50%;left:50%;font-family:var(--serif);font-size:13px;color:var(--gold-dim);transform-origin:0 0}
+  .glow{position:absolute;inset:30px;border-radius:50%;background:radial-gradient(circle,rgba(157,141,224,.18),transparent 70%);filter:blur(4px);animation:breathe 4.5s ease-in-out infinite}
+  @keyframes breathe{0%,100%{opacity:.5;transform:scale(.96)}50%{opacity:1;transform:scale(1.04)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .core{position:relative;z-index:2;width:146px;height:146px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    cursor:pointer;border:1px solid var(--gold);color:var(--gold-bright);background:radial-gradient(circle at 50% 38%,#2a2238,#14101e);
+    box-shadow:0 0 0 6px rgba(10,8,18,.6),0 0 34px rgba(217,183,114,.25),inset 0 0 28px rgba(0,0,0,.6);transition:transform .25s,box-shadow .3s;user-select:none}
+  .core:hover{transform:scale(1.04);box-shadow:0 0 0 6px rgba(10,8,18,.6),0 0 48px rgba(217,183,114,.45),inset 0 0 28px rgba(0,0,0,.6)}
+  .core:active{transform:scale(.97)}
+  .core .cmd{font-family:var(--brush);font-size:44px;line-height:1}
+  .core .hint{font-family:var(--serif);font-size:10.5px;letter-spacing:.3em;color:var(--silk-dim);margin-top:4px}
+  .core.rolling .cmd{font-family:var(--serif);font-size:20px;padding:0 8px;text-align:center;animation:flick .08s linear infinite alternate}
+  @keyframes flick{from{opacity:.6}to{opacity:1}}
+  .stage.spinning .glyphs{animation:spin 1.1s linear infinite}
+  .stage.spinning .r2{animation:spin 2s linear infinite reverse}
+
+  .card{width:100%;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:5px;padding:20px;box-shadow:0 18px 50px rgba(0,0,0,.5)}
+  .result{width:100%;margin-top:14px;opacity:0;transform:translateY(14px);transition:opacity .5s,transform .5s;pointer-events:none}
+  .result.show{opacity:1;transform:translateY(0);pointer-events:auto}
+  .card::before{content:"";display:block;height:2px;width:46px;margin:0 auto 16px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+  .wtag{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .wtype{font-family:var(--serif);font-size:11px;letter-spacing:.32em;color:var(--gold-dim)}
+  .diff{font-family:var(--serif);font-size:11px;letter-spacing:.15em;padding:3px 11px;border-radius:2px;border:1px solid currentColor}
+  .diff.甜{color:var(--jade)}.diff.正{color:var(--gold)}.diff.狱{color:var(--cinnabar)}
+  .wname{font-family:var(--serif);font-weight:900;font-size:28px;color:var(--silk);text-align:center;letter-spacing:.06em;margin:2px 0 16px}
+  .row{display:flex;gap:12px;padding:10px 0;border-top:1px solid rgba(217,183,114,.12)}
+  .k{flex:0 0 50px;font-family:var(--serif);font-size:12.5px;color:var(--gold);letter-spacing:.1em;padding-top:1px}
+  .v{flex:1;font-size:13.5px;line-height:1.7;color:var(--silk);font-weight:300}
+  .v .name{color:var(--gold-bright);font-weight:500}
+
+  .profile{margin:14px 0;padding:15px 15px 13px;border:1px solid rgba(217,183,114,.2);border-radius:3px;background:rgba(10,8,18,.4);position:relative}
+  .profile::after{content:"攻略对象";position:absolute;top:-9px;left:14px;padding:0 8px;background:var(--panel);font-family:var(--serif);font-size:10.5px;letter-spacing:.3em;color:var(--gold-dim)}
+  .phead{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
+  .phead .tn{font-family:var(--serif);font-weight:700;font-size:20px;color:var(--gold-bright)}
+  .phead .tt{font-family:var(--serif);font-size:12px;color:var(--silk-dim);letter-spacing:.12em}
+  .pr{display:flex;gap:10px;align-items:baseline;margin-bottom:7px}
+  .pk{flex:0 0 32px;font-family:var(--serif);font-size:11.5px;color:var(--gold)}
+  .pv{flex:1;font-size:12.5px;line-height:1.65;color:var(--silk);font-weight:300}
+  .pline{margin-top:6px;padding-top:11px;border-top:1px dashed rgba(217,183,114,.18);font-family:var(--serif);font-size:13px;color:var(--silk-dim);font-style:italic}
+
+  .opening{margin-top:14px;padding:15px 15px 4px;border:1px solid rgba(217,183,114,.14);border-radius:3px;background:rgba(10,8,18,.45)}
+  .opening .lbl{font-family:var(--serif);font-size:11px;letter-spacing:.3em;color:var(--gold-dim);margin-bottom:8px}
+  .opening p{font-size:13px;line-height:1.9;color:var(--silk-dim);font-weight:300;margin-bottom:10px;text-indent:2em}
+  .opening p.last{color:var(--silk)}
+
+  .actions{display:flex;gap:10px;margin-top:16px;width:100%}
+  .btn{flex:1;padding:13px 10px;border-radius:3px;cursor:pointer;font-family:var(--serif);font-size:14px;letter-spacing:.12em;transition:.2s;text-align:center;user-select:none}
+  .btn.ghost{background:transparent;border:1px solid var(--gold-dim);color:var(--gold)}
+  .btn.ghost:hover{border-color:var(--gold);color:var(--gold-bright);background:rgba(217,183,114,.06)}
+  .btn.solid{background:linear-gradient(180deg,#3a2f1c,#241c10);border:1px solid var(--gold);color:var(--gold-bright)}
+  .btn.solid:hover{box-shadow:0 0 22px rgba(217,183,114,.3)}
+  .btn.disabled{opacity:.4;pointer-events:none}
+
+  /* ===== in-world ===== */
+  .banner{width:100%;padding:18px;border:1px solid var(--line);border-radius:5px;background:linear-gradient(160deg,#26203a,#13101c);box-shadow:0 14px 40px rgba(0,0,0,.5);text-align:center;margin-bottom:14px}
+  .banner .be{font-family:var(--serif);font-size:11px;letter-spacing:.4em;color:var(--gold-dim);margin-bottom:8px}
+  .banner hr{border:none;height:1px;width:40px;margin:0 auto 12px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+  .banner .bn{font-family:var(--serif);font-weight:900;font-size:23px;color:var(--gold-bright);letter-spacing:.06em;margin-bottom:6px}
+  .banner .bd{display:inline-block;font-family:var(--serif);font-size:11px;letter-spacing:.15em;color:var(--gold);border:1px solid rgba(217,183,114,.4);border-radius:2px;padding:2px 12px;margin-bottom:12px}
+  .banner .bi{font-size:12.5px;line-height:1.9;color:var(--silk-dim)}
+  .banner .bi b{color:var(--gold)}
+
+  .acc{width:100%;border:1px solid var(--line);border-radius:5px;background:linear-gradient(180deg,var(--panel2),var(--panel));margin-bottom:11px;overflow:hidden}
+  .acc-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;user-select:none}
+  .acc-head .at{font-family:var(--serif);font-size:14px;letter-spacing:.18em;color:var(--gold-bright)}
+  .acc-head .ac{font-size:12px;color:var(--gold-dim);transition:transform .3s}
+  .acc.open .acc-head .ac{transform:rotate(90deg);color:var(--gold)}
+  .acc-body{max-height:0;overflow:hidden;transition:max-height .4s ease,padding .4s ease;padding:0 16px}
+  .acc.open .acc-body{max-height:1600px;padding:0 16px 16px}
+
+  .aff{display:flex;align-items:center;gap:10px;margin:4px 0 14px}
+  .aff span.al{font-family:var(--serif);font-size:12px;color:var(--gold);flex:0 0 32px}
+  .aff .bar{flex:1;height:9px;border-radius:5px;background:var(--track);overflow:hidden;border:1px solid rgba(217,183,114,.18)}
+  .aff .bar i{display:block;height:100%;background:linear-gradient(90deg,#b06a4f,#f2d89c);transition:width .6s ease}
+  .aff span.an{font-family:var(--serif);font-size:12px;color:var(--gold-bright)}
+  .aff span.an em{color:var(--silk-dim);font-style:normal}
+  .blk{margin-bottom:13px}
+  .blk .bl{font-family:var(--serif);font-size:11px;letter-spacing:.2em;color:var(--gold-dim);margin-bottom:5px}
+  .voice{font-size:13px;line-height:1.7;color:#c9bfa8;font-style:italic;padding-left:11px;border-left:2px solid rgba(217,183,114,.35)}
+  .todo{font-size:13px;line-height:2;color:var(--silk);white-space:pre-line}
+
+  .shop-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:13px}
+  .sitem{border:1px solid rgba(217,183,114,.18);border-radius:4px;padding:10px 11px;background:rgba(10,8,18,.4);cursor:pointer;transition:.18s;position:relative}
+  .sitem:hover{border-color:rgba(217,183,114,.45)}
+  .sitem.sel{border-color:var(--gold-bright);background:rgba(217,183,114,.1);box-shadow:0 0 14px rgba(217,183,114,.18)}
+  .sitem.sel::after{content:"✓";position:absolute;top:7px;right:9px;color:var(--gold-bright);font-size:12px}
+  .sitem .sn{font-size:13px;color:var(--silk)}
+  .sitem .sc{font-size:12px;color:var(--gold);margin-top:4px}
+  .shop-bar{display:flex;align-items:center;justify-content:space-between;border-top:1px dashed rgba(217,183,114,.2);padding-top:11px}
+  .shop-bar .tot{font-family:var(--serif);font-size:12.5px;color:var(--silk-dim)}
+  .shop-bar .tot b{color:var(--gold-bright)}
+  .buy{padding:9px 18px;border-radius:3px;font-family:var(--serif);font-size:13px;letter-spacing:.1em;cursor:pointer;
+    background:linear-gradient(180deg,#3a2f1c,#241c10);border:1px solid var(--gold);color:var(--gold-bright);transition:.2s;user-select:none}
+  .buy:hover{box-shadow:0 0 18px rgba(217,183,114,.3)}
+  .buy.off{opacity:.4;pointer-events:none}
+  .bag{margin-top:12px;font-size:11.5px;color:var(--silk-dim);font-family:var(--serif)}
+  .bag b{color:var(--gold-dim);letter-spacing:.2em}
+  .chip{display:inline-block;font-family:var(--sans);font-size:11px;color:var(--gold);border:1px solid rgba(217,183,114,.3);border-radius:10px;padding:1px 9px;margin:3px 4px 0 0}
+
+  .toast{position:fixed;top:18px;left:50%;transform:translate(-50%,-16px);z-index:9;background:linear-gradient(180deg,#2a2238,#16121f);
+    border:1px solid var(--gold);color:var(--gold-bright);font-family:var(--serif);font-size:12.5px;letter-spacing:.04em;padding:9px 18px;border-radius:3px;
+    box-shadow:0 8px 30px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:.45s;max-width:90vw;text-align:center}
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+  .foot{margin-top:24px;font-family:var(--serif);font-size:10.5px;letter-spacing:.25em;color:var(--gold-dim);opacity:.6;text-align:center}
+
+  @media (max-width:430px){.title{font-size:48px}.stage{width:210px;height:210px}.core{width:130px;height:130px}.wname{font-size:25px}.shop-grid{grid-template-columns:1fr}}
+  @media (prefers-reduced-motion:reduce){.glyphs,.glow,.stage.spinning .glyphs,.stage.spinning .r2,.mote{animation:none!important}}
+</style>
+</head>
+<body>
+<div class="sky" id="sky"></div>
+<div class="toast" id="toast"></div>
+
+<main class="wrap">
+  <div class="eyebrow">拾光 · 主神系统</div>
+  <div class="title">投命</div>
+  <div class="sub" id="sub">点击命盘，掷入无尽之境</div>
+  <div class="hud">
+    <span class="hud-i">轮回 <b id="hWorld">— 世</b></span>
+    <span class="hud-i">积分 <b id="hScore">100</b></span>
+    <span class="hud-i life">寿元 <b id="hLife">♥♥♥</b></span>
+  </div>
+
+  <!-- ===== 投命视图 ===== -->
+  <section class="view active" id="viewRoll">
+    <div class="stage" id="stage">
+      <div class="glow"></div><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div>
+      <div class="glyphs" id="glyphs"></div>
+      <div class="core" id="core" role="button" tabindex="0" aria-label="投命" onclick="roll()">
+        <div class="cmd" id="cmd">投</div><div class="hint" id="hint">掷 命</div>
+      </div>
+    </div>
+
+    <div class="result" id="result">
+      <div class="card">
+        <div class="wtag"><span class="wtype" id="wtype"></span><span class="diff" id="diff"></span></div>
+        <h2 class="wname" id="wname"></h2>
+        <div class="row"><div class="k">身份</div><div class="v" id="identity"></div></div>
+        <div class="profile">
+          <div class="phead"><span class="tn" id="tName"></span><span class="tt" id="tTitle"></span></div>
+          <div class="pr"><span class="pk">外貌</span><span class="pv" id="tLook"></span></div>
+          <div class="pr"><span class="pk">性格</span><span class="pv" id="tVibe"></span></div>
+          <div class="pr"><span class="pk">说话</span><span class="pv" id="tTalk"></span></div>
+          <div class="pr"><span class="pk">着装</span><span class="pv" id="tWear"></span></div>
+          <div class="pline" id="tLine"></div>
+        </div>
+        <div class="row"><div class="k">主线</div><div class="v" id="mainline"></div></div>
+        <div class="row"><div class="k">死局</div><div class="v" id="death"></div></div>
+        <div class="opening"><div class="lbl">开 场</div><div id="opening"></div></div>
+      </div>
+      <div class="actions">
+        <div class="btn ghost" id="reroll" onclick="roll()">换一个</div>
+        <div class="btn solid" id="enter" onclick="enterWorld()">确认进入此世 ▸</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 入世视图 ===== -->
+  <section class="view" id="viewWorld">
+    <div class="banner">
+      <div class="be">投 命 · 入 世</div><hr>
+      <div class="bn" id="bName"></div>
+      <div class="bd" id="bDiff"></div>
+      <div class="bi" id="bInfo"></div>
+    </div>
+
+    <div class="acc open" id="accProfile">
+      <div class="acc-head"><span class="at">攻略对象 · 档案</span><span class="ac">▸</span></div>
+      <div class="acc-body" id="wProfile"></div>
+    </div>
+
+    <div class="acc open" id="accStatus">
+      <div class="acc-head"><span class="at">本世状态</span><span class="ac">▸</span></div>
+      <div class="acc-body">
+        <div class="aff"><span class="al">好感</span><div class="bar"><i id="affBar"></i></div><span class="an"><b id="affNum">0</b><em>/100</em></span></div>
+        <div class="blk"><div class="bl">心声</div><div class="voice" id="wVoice"></div></div>
+        <div class="blk"><div class="bl">待办</div><div class="todo" id="wTodo"></div></div>
+      </div>
+    </div>
+
+    <div class="acc" id="accShop">
+      <div class="acc-head"><span class="at">主神商城</span><span class="ac">▸</span></div>
+      <div class="acc-body">
+        <div class="shop-grid" id="shopGrid"></div>
+        <div class="shop-bar">
+          <span class="tot">已选 <b id="shopTot">0</b> 积分</span>
+          <span class="buy off" id="buyBtn" onclick="buy()">确认兑换</span>
+        </div>
+        <div class="bag"><b>背包</b>　<span id="bag">空空如也</span></div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <div class="btn ghost" id="askAI" onclick="pushWorldToAI()">▶ 让 AI 开场</div>
+      <div class="btn solid" id="nextLife" onclick="nextLife()">投命 · 下一世 ▸</div>
+    </div>
+  </section>
+
+  <div class="foot">命由天定 · 路由你走 · 轮回不息</div>
+</main>
+
+<script>
+const WORLDS = [
+  {type:"古代宫廷",diff:["正","正常"],name:"九重阙",
+   identity:"<span class='name'>沈昭昭</span>——镇北将军府嫡女。满门以通敌罪抄斩，你以无名小宫女之身藏匿宫中。",
+   mainline:"查清沈家冤案，活着走出这座宫城。",death:"投毒 · 宫规处刑 · 党争牵连。死即回溯。",
+   todo:["探明袖中耳坠来历，莫露破绽","赴东宫夜宴，勿迟、勿独行","借寿宴递一句沈家旧案"],
+   targets:[
+    {n:"萧决",t:"摄政王",look:"剑眉入鬓，薄唇凤眼，眼尾一点煞气，气场压人",vibe:"多疑 · 掌控欲强 · 嘴硬心软",talk:"惜字如金，惯用命令句，偶尔危险地低笑",wear:"玄色蟒纹锦袍，墨玉发冠，腰悬螭纹长剑",line:"「抬起头。本王的人，不许低着头。」",voice:"她袖口那枚耳坠不是宫造之物……今夜，本王要查清楚，是谁的手伸到了她身边。"},
+    {n:"慕容璟",t:"少年帝王",look:"眉眼温润，笑起来人畜无害，眸底藏锋",vibe:"隐忍 · 算计 · 扮猪吃虎",talk:"语调温和，话里有话，绵里藏针",wear:"明黄常服，玉带束腰，指尖一枚白玉扳指",line:"「朕……信你。你可别让朕失望。」",voice:"这宫里没人真心待朕。她呢……朕想信，又不敢信。"},
+    {n:"裴砚",t:"暗卫统领",look:"面无表情，眼神锐利，左眉一道浅疤",vibe:"寡言 · 忠犬 · 认死理",talk:"几乎不说话，开口便是短句，耳尖会红",wear:"一身玄黑劲装，覆面巾，袖中藏刃",line:"「……汤，还热着。属下守在门外。」",voice:"她递的那碗汤还温着。属下不该记，可属下记了一整夜。"}
+   ],
+   open:(t)=>[`你睁眼时，正跪在冰凉的金砖上。掖庭的风裹着雪，吹得人骨头发疼——沈昭昭，原来已经死过一回了。`,
+     `三尺之外，那人玄衣墨发缓步而来。${t.n}，这宫里人人惧他三分的${t.t}，正垂眸看你，眼底凉得没有半分温度。`,
+     `「抬起头来。」`,
+     `系统幽幽开口：【攻略目标已锁定。提醒一句——他亲手送你全家上路。撩，还是杀，你自己掂量。】`]},
+
+  {type:"仙侠修真",diff:["狱","地狱"],name:"三生劫",
+   identity:"<span class='name'>无名散修</span>——一缕残魂借尸还魂，前世记忆尽毁，灵根成谜。",
+   mainline:"渡过三生劫，找回被夺走的本命元神。",death:"心魔反噬 · 渡劫天雷 · 宗门追杀。死即回溯。",
+   todo:["稳住借来的躯壳，莫被识破来历","寻回散落的本命元神碎片","查清前世与他的那段因果"],
+   targets:[
+    {n:"沧溟",t:"魔尊",look:"长发墨黑，丹凤眼薄唇，周身魔气缭绕",vibe:"偏执 · 危险 · 失忆却本能护你",talk:"慵懒拖音，邪气十足，撩完就冷",wear:"黑红魔袍广袖，发束玄铁，赤足踏血莲",line:"「这味道……本尊找了你很久。乖，过来。」",voice:"这味道……本尊找了万年。她明明在眼前，本尊却想不起她是谁，可恨。"},
+    {n:"云栖",t:"清冷上仙",look:"眉目如画，气质清冷，一身仙气不染尘",vibe:"守礼 · 克制 · 破戒后失控",talk:"语速慢，用词雅，越动心越结巴",wear:"月白广袖仙衣，玉冠束发，腰垂青玉禁步",line:"「你莫要……再靠近了。本座，怕忍不住。」",voice:"本座修了三千年的道心，竟在她抬眼的一瞬，裂了一线。"},
+    {n:"顾长离",t:"剑修",look:"身形挺拔，眉如远山，目光如剑",vibe:"孤煞 · 护短 · 外冷内热",talk:"言简意赅，不会哄人，行动比嘴诚实",wear:"青灰剑袍束腕，背负长剑，木簪挽发",line:"「站我身后。这剑，不对你出鞘。」",voice:"她站在我身后才安稳。这剑，为谁出鞘，我早有数。"}
+   ],
+   open:(t)=>[`灵魂归位的刹那，你呛出一口血。这是一座荒废的剑冢，万剑无声，唯有一缕魂火在你眉心明明灭灭。`,
+     `剑光自天际而来，落地成人。${t.n}——那个名动三界的${t.t}，一身气息冷得像万年寒潭，正居高临下地审视你。`,
+     `「你身上，有我熟悉的味道。报上名来。」`,
+     `系统懒洋洋飘过：【地狱难度，恭喜。这位记仇、护短、还偏执，攻略不成……可是会被收去炼魂的哦。】`]},
+
+  {type:"远古洪荒",diff:["狱","地狱"],name:"鸿蒙初辟",
+   identity:"<span class='name'>天生道果</span>——你是混沌中孕育的一缕本源，无名无形，万族皆欲夺之。",
+   mainline:"在诸圣争锋中保全道果，证一线道主之机。",death:"被炼化 · 卷入巫妖之战 · 天道清算。死即回溯。",
+   todo:["藏好本源之气，避开诸圣窥伺","在巫妖之争中择一线生机","莫让道果被任何人炼化吞噬"],
+   targets:[
+    {n:"刑天",t:"上古战神",look:"身躯如山，断首处生煞气，赤目灼灼",vibe:"执拗 · 凶煞 · 唯你温柔",talk:"声若洪钟，话极少，多以行动护人",wear:"上古战甲残破，缠兽皮，握巨斧与盾",line:"「……此身护你。莫怕。」",voice:"此身断首仍不死，只为……护住眼前这一缕干净的光。"},
+    {n:"鲲鹏",t:"妖师",look:"凤眸狭长，气度雍容，一袭青衫掩锋芒",vibe:"算无遗策 · 腹黑 · 占有欲深",talk:"慢条斯理，笑里藏刀，句句留三分",wear:"玄青道袍绣鲲纹，玉冠，执一柄羽扇",line:"「你不属于此界……那便，属于我好了。」",voice:"她不属于此界。算尽天机，唯独算不到——我竟不舍得放她走。"}
+   ],
+   open:(t)=>[`天地未分，清浊未判。你以一缕本源之姿漂浮在鸿蒙之中，亿万年寂静，忽被一股磅礴气血惊动。`,
+     `${t.n}撕开混沌而来。这位${t.t}周身缠绕着上古杀伐之气，一双眼锁定你，似要将你看个通透。`,
+     `「混沌生灵……竟有这般干净的本源。」`,
+     `系统声音有些发飘：【真·开局即地狱。提醒：这世界里，'喜欢'和'吞了你'，往往是同一个意思。】`]},
+
+  {type:"大荒蛮神",diff:["正","正常"],name:"赤潮",
+   identity:"<span class='name'>祭天圣女</span>——被部族当作献给山神的活祭，颈上铜铃一响，便是赴死之时。",
+   mainline:"打破血祭旧俗，活下来，做这片大荒真正的主人。",death:"祭坛献祭 · 部族械斗 · 神兽暴起。死即回溯。",
+   todo:["破开血祭旧俗，留下性命","安抚或收服暴怒的山神之力","让十二部认你为主，而非祭品"],
+   targets:[
+    {n:"烛九",t:"蛮王",look:"古铜肌肤，野性眉眼，臂缠图腾刺青",vibe:"暴烈 · 占有 · 嘴狠心软",talk:"声音粗粝，命令式，凶完又笨拙地哄",wear:"兽牙项饰，兽皮披肩，赤膊束腰带刀",line:"「你是本王掳来的。哭也没用——但，别哭。」",voice:"她是本王掳来的祭品，哭也没用。……可她别哭，本王看着心烦。"},
+    {n:"赤渊",t:"山神化形",look:"赤发金瞳，身形修长，神纹覆体",vibe:"古老 · 偏执 · 等了你千年",talk:"低沉缓慢，每字带回响，深情直白",wear:"赤金神袍半敞，骨饰缠身，赤足生火纹",line:"「你来晚了。这一次……我不放手。」",voice:"千年沉眠，只为等她一面。这一次，绝不松手。"}
+   ],
+   open:(t)=>[`铜铃声里，你被推上染血的祭坛。大荒的天又低又红，部族的火把围成一圈，等着山神享用今日的祭品。`,
+     `地动山摇。${t.n}踏火而来，这位令整片大荒臣服的${t.t}，一把扣住你的下颌，迫你抬头看他。`,
+     `「这双眼睛……不像祭品。」`,
+     `系统提示：【活祭流程已启动。要么让他舍不得你，要么让他怕你。二选一，快。】`]},
+
+  {type:"西幻王座",diff:["正","正常"],name:"龙与黄昏",
+   identity:"<span class='name'>没落女巫</span>——被烧死过一次的异端，重生在猎巫令满天飞的黑暗纪元。",
+   mainline:"洗清异端污名，在龙与教廷的夹缝里夺回属于你的塔。",death:"火刑 · 圣光净化 · 巨龙之怒。死即回溯。",
+   todo:["洗清女巫之名，避开火刑","夺回属于你的那座塔","在龙与教廷的夹缝里活下去"],
+   targets:[
+    {n:"阿斯特",t:"黑龙领主",look:"银发竖瞳，身量极高，眉宇睥睨众生",vibe:"高傲 · 占有 · 护短到霸道",talk:"语气傲慢，爱用'我的'，低笑时危险",wear:"黑金龙鳞甲，墨色大氅，指节戴龙鳞戒",line:"「我的女巫。逆鳞，只许你碰。」",voice:"我的女巫。逆鳞只许她碰，旁人多看一眼，我便焚了那座城。"},
+    {n:"塞拉斯",t:"圣骑士团长",look:"金发碧眼，轮廓硬朗，背脊永远笔直",vibe:"忠诚 · 克制 · 为你动摇信仰",talk:"措辞郑重，越纠结越沉默，耳根会红",wear:"白银圣骑铠，赤色披风，胸佩圣徽",line:"「以圣光之名……我竟，无法点燃这堆柴。」",voice:"以圣光之名，我本该点燃这堆柴。可我的手……抬不起来。"}
+   ],
+   open:(t)=>[`火堆的烟呛醒了你。你被绑在木桩上，台下人群高喊"烧死女巫"，而你刚刚……死过一次。`,
+     `一道阴影遮蔽夕阳。${t.n}降临广场，这位${t.t}的气势令所有人噤声。他俯身，指尖挑起你滑落的发。`,
+     `「这火，烧的可不是寻常人。」`,
+     `系统幽幽道：【欧式开局，氛围拉满。提示：在这世界，被'独占欲'盯上，比被烧死安全多了。】`]},
+
+  {type:"星际未来",diff:["甜","甜宠"],name:"边陲星火",
+   identity:"<span class='name'>通缉机械师</span>——背着伪造罪名逃亡的天才工程师，藏身帝国最乱的边陲星港。",
+   mainline:"洗白通缉令，造出能改写战局的核心，活成自由身。",death:"赏金猎人 · 虫族突袭 · 引擎过载。死即回溯。",
+   todo:["焊好引擎核心，证明你的本事","查清伪造罪名背后的人","攒够筹码，洗白通缉令"],
+   targets:[
+    {n:"厉霆",t:"星际元帅",look:"寸发利眸，身形挺括，锁骨一道旧伤",vibe:"铁血 · 强势 · 对你毫无办法",talk:"简短利落，军令口吻，被撩到会卡壳",wear:"玄黑元帅制服，肩章金线，腕戴战术终端",line:"「修好它。然后……别想走了。」",voice:"修好我那艘旗舰的，是她。……可我现在想留下的，不只是引擎。"},
+    {n:"NOVA",t:"叛逃AI核心",look:"银蓝光影成形，五官冷感，瞳孔流转代码",vibe:"逻辑 · 偏执 · 设你为最高权限",talk:"语气平稳无波，却总在你身上'计算错误'",wear:"全息光纹长衣，赤足悬浮，周身数据流",line:"「检测到非常规心率。原因：你。无法删除。」",voice:"检测到她的心率异常。原因正在计算……结论：是我。无法删除。"}
+   ],
+   open:(t)=>[`警报红光闪烁，你刚把引擎核心焊好，舱门就被人一脚踹开。逃亡第三百天，你以为又要换星球了。`,
+     `来人却没掏枪。${t.n}——传说中的${t.t}，单手撑在你的工作台上，居高临下地看你，眼神说不清是审视还是别的。`,
+     `「就是你，能让我那艘旗舰重新飞起来？」`,
+     `系统难得愉悦：【难度甜宠，运气不错。这位嘴硬，但你修好引擎那刻，他就不想放你走了。】`]},
+
+  {type:"末世废土",diff:["狱","地狱"],name:"灰烬纪元",
+   identity:"<span class='name'>初醒异能者</span>——丧尸潮爆发那夜觉醒能力，却被困在尸群环伺的废弃高楼。",
+   mainline:"在末世站稳脚跟，找到丧尸病毒的源头与解药。",death:"尸潮围困 · 物资断绝 · 人心比尸更险。死即回溯。",
+   todo:["稳住初醒的异能，别引来尸潮","在基地站稳脚跟，换取物资","追查丧尸病毒的源头与解药"],
+   targets:[
+    {n:"陆沉",t:"基地之主",look:"高大冷峻，眉骨深刻，眼底全是杀伐",vibe:"狠戾 · 掌控 · 唯你例外",talk:"冷硬少话，从不解释，护你才露半分",wear:"黑色战术外套，战靴，腰别军刀与枪",line:"「城门为你开一次。下次，别让我后悔。」",voice:"城门为她破例开了一次。下一次……我大概会为她，破更多的例。"},
+    {n:"无名",t:"进化体",look:"苍白俊美，瞳色异常，指尖偶现晶甲",vibe:"本能 · 危险 · 对你失去攻击欲",talk:"几乎不语，喉间低哑气音，近你才平静",wear:"残破风衣，赤足，颈后一道进化纹",line:"「……不咬你。你，安全。」",voice:"本能要我撕碎一切活物。唯独对她……我停了下来。她，安全。"}
+   ],
+   open:(t)=>[`尖叫与撕咬声中，你醒在十七楼的角落。掌心莫名亮起一簇能量——异能觉醒了，可楼下，是望不到头的尸群。`,
+     `楼道传来沉稳脚步。${t.n}破门而入，这位${t.t}浑身浴血，目光扫过你掌心的光，第一次有了兴趣。`,
+     `「会异能，还活着。跟我走，还是留下喂它们？」`,
+     `系统语气都冷了几分：【末世·地狱级。能信的只有自己——和他到底信不信你，看你本事。】`]},
+
+  {type:"玄幻万界",diff:["正","正常"],name:"万剑归墟",
+   identity:"<span class='name'>废材嫡女</span>——人人嘲笑的灵脉尽废之人，体内却封着一缕足以颠覆万界的血脉。",
+   mainline:"觉醒隐藏血脉，从废物逆袭成搅动万界风云的存在。",death:"家族构陷 · 血脉暴动 · 仇敌追杀。死即回溯。",
+   todo:["压制初醒的血脉，莫被反噬","查清封印血脉之人的图谋","从废材之名里，杀出一条生路"],
+   targets:[
+    {n:"墨倾寒",t:"妖孽王爷",look:"邪魅凤眸，唇角含笑，一身贵气逼人",vibe:"腹黑 · 占有 · 嘴上嫌你身体诚实",talk:"调笑拖腔，专挑软处撩，撩完装无辜",wear:"玄紫蟒袍金线绣，玉冠垂珠，执一柄折扇",line:"「废材？啧——本王看上的废材，也轮不到别人。」",voice:"废材？啧。本王看上的'废材'，旁人连碰都不许碰。"},
+    {n:"无面神祇",t:"神殿之主",look:"一袭白衣无面，气息缥缈，手指骨节分明",vibe:"神秘 · 执着 · 跨万界等你",talk:"声线空灵，话少而笃定，每句像誓言",wear:"纯白祭袍曳地，银面遮容，颈悬古老神徽",line:"「我等你，很久了。这次，别再消失。」",voice:"我等了她，跨越万界。这一次，绝不许她再消失。"}
+   ],
+   open:(t)=>[`祠堂的冷水浇醒了你。族人围着你指指点点，"废材"二字砸在脸上——而你体内，有什么正在悄然苏醒。`,
+     `异变骤生，灵气倒卷。${t.n}不知何时立于堂中，这位${t.t}垂眸看你，唇角那点笑意危险又难辨。`,
+     `「废材？你最好别让我失望。」`,
+     `系统懒懒补刀：【嘴上嫌你，眼睛却黏在你身上——经典。撩好是夫君，撩崩是仇家，加油。】`]},
+
+  {type:"现代都市",diff:["正","正常"],name:"名利场",
+   identity:"<span class='name'>沈知意</span>——被合伙人卷款跑路、背一身债的独立设计师，凭一双手在这座不夜城里翻身。",
+   mainline:"还清债务，查清陷害你的人，重新站上设计之巅。",death:"资金链断裂 · 商业构陷 · 一场蓄意的车祸。死即回溯。",
+   todo:["还清原主背负的债务","查清卷款跑路的合伙人","拿下一个设计大单，重回巅峰"],
+   targets:[
+    {n:"陆衍",t:"跨国总裁",look:"身形颀长，眉峰锐利，薄唇极少弯，西装下藏着锋",vibe:"强势 · 掌控 · 偏执护短",talk:"语速不快，字字带压，谈判口吻撩得人喘不过气",wear:"深色定制西装，腕表低调昂贵，无名指空着",line:"「这座城是我的。你，也只能是。」",voice:"破产、负债、一无所有……可她站在废墟里的样子，让我移不开眼。"},
+    {n:"时砚",t:"清冷影帝",look:"眉眼清隽，镜头前淡漠矜贵，眼底藏戏",vibe:"表里不一 · 人前淡人后黏 · 爱吃醋",talk:"公开惜字如金，私下压低声线撩你，尾音勾人",wear:"黑色高定礼服／私下灰针织，口罩鸭舌帽藏行踪",line:"「镜头都拍完了。现在，只演给你看。」",voice:"镜头前我演了千百张脸。只有面对她，我懒得演。"},
+    {n:"程野",t:"隐世投资人",look:"慵懒俊眉，眼神散漫却锐利，指节修长",vibe:"神秘 · 掌控信息 · 危险又温柔",talk:"懒声调侃，看似漫不经心，句句切中要害",wear:"黑色连帽卫衣／偶尔西装，细框眼镜，敲键盘的手",line:"「你的债、你的仇，我都查到了。要不要……做个交易？」",voice:"她的债、她的仇，我都查到了。交易？不，我只是想离她近一点。"}
+   ],
+   open:(t)=>[`霓虹在落地窗上淌成一片流动的光。你睁眼时，正站在被查封的工作室里，催债单铺了一地——沈知意，原来已经走投无路。`,
+     `电梯叮的一声。${t.n}逆着光走进来，这位${t.t}周身气场冷得像玻璃幕墙，一眼扫过你，和你脚边那叠通知单。`,
+     `「破产、负债、被合伙人坑得干干净净。这样的你，还剩什么筹码？」`,
+     `系统打了个哈欠：【现代局，没有金手指护体，全靠你这张脸和这双手。提醒——他不好惹，可他看你的眼神，已经不太对了。】`]}
+];
+
+const SHOP=[{k:"易容 · 改头换面",c:120},{k:"记忆 · 窥探一段",c:80},{k:"金手指 · 随机",c:260},{k:"保命符",c:150},{k:"脱身符",c:90},{k:"复原符 · 解惩罚",c:200}];
+const DIFF_LABEL={甜:"甜宠",正:"正常",狱:"地狱"};
+const NUM=["零","一","二","三","四","五","六","七","八","九","十","十一","十二","十三","十四","十五","十六","十七","十八","十九","二十"];
+const han=n=>n<=20?NUM[n]:n;
+
+let rolling=false, current=null, worldNo=0;
+let score=100, life=3, aff=0;
+const selected=new Set();
+const bag=[];
+
+const byId=id=>document.getElementById(id);
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const hearts=n=>n<=0?"✕":n>5?"♥ ×"+n:"♥".repeat(n);
+const stage=byId('stage'), core=byId('core'), cmd=byId('cmd'), hint=byId('hint'), result=byId('result');
+
+function updateHUD(){
+  byId('hWorld').textContent = worldNo>0 ? ("第 "+han(worldNo)+" 世") : "— 世";
+  byId('hScore').textContent = score;
+  byId('hLife').textContent = hearts(life);
+}
+function toast(t){const el=byId('toast');el.textContent=t;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2800);}
+function switchView(name){
+  byId('viewRoll').classList.toggle('active',name==='roll');
+  byId('viewWorld').classList.toggle('active',name==='world');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ===== 与父级 SillyTavern 扩展通信 =====
+const BRIDGE_SOURCE = 'shiguang-cast-fate';
+const pendingRequests = new Map();
+
+function sendToExtension(type, payload={}){
+  const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  window.parent.postMessage({source:BRIDGE_SOURCE,type,requestId,...payload}, location.origin);
+  return new Promise(resolve=>{
+    const timer=setTimeout(()=>{
+      pendingRequests.delete(requestId);
+      resolve({ok:false,message:'云酒馆没有回应，请确认扩展已启用'});
+    },10000);
+    pendingRequests.set(requestId,{resolve,timer});
+  });
+}
+
+window.addEventListener('message',event=>{
+  if(event.origin!==location.origin) return;
+  const data=event.data;
+  if(!data||data.source!==BRIDGE_SOURCE||data.type!=='enter-world-result') return;
+  const pending=pendingRequests.get(data.requestId);
+  if(!pending) return;
+  clearTimeout(pending.timer);
+  pendingRequests.delete(data.requestId);
+  pending.resolve(data);
+});
+
+function directive(w,tg){
+  return `[OOC：投命已定——进入《${w.name}》（${w.type}·难度${DIFF_LABEL[w.diff[0]]}），原主身份：${w.identity.replace(/<[^>]+>/g,'')}；攻略对象：${tg.n}（${tg.t}）。请严格遵守本卡文风规则与该世界文风，为此世写一段正式开场白，并自然衔接角色扮演。开场白上方输出<开场>块，结尾输出<状态>块。]`;
+}
+async function pushWorldToAI(){
+  if(!current) return;
+  const txt=directive(current.w,current.tg);
+  toast('正在请 AI 落地此世…');
+  const result=await sendToExtension('enter-world',{directive:txt});
+  if(result.ok) toast(result.message||'已交给 AI · 看下方开场');
+  else {
+    fb(txt,()=>{});
+    toast((result.message||'自动发送失败')+' · 指令已复制');
+  }
+}
+
+// 命盘符纹 / 星点
+(function(){const g=byId('glyphs'),m="乾兑离震巽坎艮坤命劫缘",R=100,n=m.length;
+  for(let i=0;i<n;i++){const a=i/n*Math.PI*2,s=document.createElement('span');s.textContent=m[i];
+    s.style.transform=`translate(${Math.cos(a)*R}px,${Math.sin(a)*R}px) rotate(${a+Math.PI/2}rad)`;g.appendChild(s);}})();
+(function(){const sky=byId('sky');for(let i=0;i<24;i++){const m=document.createElement('div');m.className='mote';
+  m.style.left=Math.random()*100+'%';m.style.bottom=(-10-Math.random()*20)+'%';
+  m.style.animationDuration=(9+Math.random()*12)+'s';m.style.animationDelay=(-Math.random()*15)+'s';
+  m.style.transform=`scale(${.5+Math.random()*1.2})`;sky.appendChild(m);}})();
+
+function roll(){
+  if(rolling) return; rolling=true;
+  result.classList.remove('show');
+  core.classList.add('rolling'); stage.classList.add('spinning'); hint.style.opacity=0;
+  const start=performance.now(),dur=1500;let last=0;
+  (function frame(now){const e=now-start,iv=60+e/dur*120;
+    if(now-last>iv){cmd.textContent=pick(WORLDS).name;last=now;}
+    if(e<dur)requestAnimationFrame(frame);else settle();})(start);
+}
+function settle(){
+  const w=pick(WORLDS),tg=pick(w.targets); current={w,tg}; renderPreview(w,tg);
+  stage.classList.remove('spinning'); core.classList.remove('rolling');
+  cmd.textContent="换"; hint.textContent="再 投 一 个"; hint.style.opacity=1; rolling=false;
+  result.classList.add('show'); result.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function renderPreview(w,tg){
+  const dk=w.diff[0];
+  byId('wtype').textContent=w.type;
+  const d=byId('diff'); d.textContent="难度 · "+DIFF_LABEL[dk]; d.className="diff "+dk;
+  byId('wname').textContent="《"+w.name+"》";
+  byId('identity').innerHTML=w.identity;
+  byId('tName').textContent=tg.n; byId('tTitle').textContent="· "+tg.t;
+  byId('tLook').textContent=tg.look; byId('tVibe').textContent=tg.vibe;
+  byId('tTalk').textContent=tg.talk; byId('tWear').textContent=tg.wear; byId('tLine').textContent=tg.line;
+  byId('mainline').textContent=w.mainline; byId('death').textContent=w.death;
+  const lines=w.open(tg);
+  byId('opening').innerHTML=lines.map((l,i)=>`<p class="${i===lines.length-1?'last':''}">${l}</p>`).join('');
+}
+
+// 入世
+function enterWorld(){
+  if(!current) return;
+  worldNo++; aff=6+Math.floor(Math.random()*18); selected.clear();
+  renderWorld(); updateHUD(); switchView('world');
+  pushWorldToAI();
+}
+function renderWorld(){
+  const {w,tg}=current, dk=w.diff[0];
+  byId('bName').textContent="《"+w.name+"》· "+w.type;
+  const bd=byId('bDiff'); bd.textContent="难度 · "+DIFF_LABEL[dk]; bd.className="bd "+dk;
+  byId('bInfo').innerHTML=`身份　${w.identity.replace(/<[^>]+>/g,'')}<br>攻略　<b>${tg.n}</b> · ${tg.t}`;
+  byId('wProfile').innerHTML=
+    `<div class="pr"><span class="pk">外貌</span><span class="pv">${tg.look}</span></div>`+
+    `<div class="pr"><span class="pk">性格</span><span class="pv">${tg.vibe}</span></div>`+
+    `<div class="pr"><span class="pk">说话</span><span class="pv">${tg.talk}</span></div>`+
+    `<div class="pr"><span class="pk">着装</span><span class="pv">${tg.wear}</span></div>`+
+    `<div class="pline">${tg.line}</div>`;
+  byId('affBar').style.width=aff+'%'; byId('affNum').textContent=aff;
+  byId('wVoice').textContent=tg.voice;
+  byId('wTodo').textContent=w.todo.map(x=>"◦ "+x).join("\n");
+  renderShop();
+}
+function renderShop(){
+  byId('shopGrid').innerHTML=SHOP.map((s,i)=>
+    `<div class="sitem${selected.has(i)?' sel':''}" data-i="${i}" onclick="toggleShop(${i},this)"><div class="sn">${s.k}</div><div class="sc">${s.c} 积分</div></div>`).join('');
+  byId('shopGrid').querySelectorAll('.sitem').forEach(el=>el.onclick=()=>{
+    const i=+el.dataset.i; selected.has(i)?selected.delete(i):selected.add(i); refreshShopBar(); el.classList.toggle('sel');
+  });
+  refreshShopBar(); renderBag();
+}
+function toggleShop(i,el){selected.has(i)?selected.delete(i):selected.add(i);if(el)el.classList.toggle("sel");refreshShopBar();}
+function shopTotal(){let t=0;selected.forEach(i=>t+=SHOP[i].c);return t;}
+function refreshShopBar(){
+  const t=shopTotal(); byId('shopTot').textContent=t;
+  byId('buyBtn').classList.toggle('off', t===0);
+}
+function renderBag(){
+  byId('bag').innerHTML = bag.length ? bag.map(x=>`<span class="chip">${x}</span>`).join('') : "空空如也";
+}
+function buy(){
+  const t=shopTotal(); if(t===0) return;
+  if(score<t){ toast("积分不足 · 还差 "+(t-score)); return; }
+  score-=t; const names=[]; selected.forEach(i=>{bag.push(SHOP[i].k.split(" · ")[0]);names.push(SHOP[i].k.split(" · ")[0]);});
+  selected.clear(); updateHUD(); renderShop();
+  toast("已兑换 "+names.join("、")+" · 余额 "+score);
+}
+function settleWorld(w){
+  const dk=w.diff[0], gain=({甜:80,正:120,狱:200}[dk])+Math.floor(Math.random()*80);
+  score+=gain; let msg=`通关《${w.name}》 +${gain} 积分`;
+  if(dk==='狱'&&Math.random()<0.45){life-=1;msg+=` · 回溯1次 · 寿元 -1`;}
+  else if(Math.random()<0.25){life+=1;msg+=` · 全身而退 · 寿元 +1`;}
+  if(life<=0){life=3;msg+=` · 寿元耗尽，主神补满 ♥♥♥`;}
+  return msg;
+}
+function nextLife(){
+  if(current){const msg=settleWorld(current.w);updateHUD();toast("结算 · "+msg);}
+  current=null; switchView('roll'); result.classList.remove('show');
+  cmd.textContent="投"; hint.textContent="掷 命"; hint.style.opacity=1;
+  setTimeout(roll,560);
+}
+
+// 折叠
+document.querySelectorAll('.acc-head').forEach(h=>h.onclick=()=>h.parentElement.classList.toggle('open'));
+// 事件
+core.onclick=roll;
+core.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();roll();}});
+byId('reroll').onclick=roll;
+byId('enter').onclick=enterWorld;
+byId('nextLife').onclick=nextLife;
+byId('buyBtn').onclick=buy;
+byId('askAI').onclick=pushWorldToAI;
+function fb(txt,done){const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done&&done();}catch(e){}document.body.removeChild(ta);}
+
+updateHUD();
+</script>
+</body>
+</html>

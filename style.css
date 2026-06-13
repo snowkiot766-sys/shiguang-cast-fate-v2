@@ -1,0 +1,16 @@
+#shiguang-launcher{
+  position:fixed;right:18px;bottom:92px;z-index:30001;width:52px;height:52px;border-radius:50%;
+  border:1px solid #d9b772;background:radial-gradient(circle at 45% 35%,#302647,#100d18 72%);
+  color:#f2d89c;display:none;place-items:center;cursor:pointer;box-shadow:0 8px 28px rgba(0,0,0,.45),0 0 18px rgba(217,183,114,.22);
+}
+#shiguang-launcher:hover{transform:translateY(-2px);box-shadow:0 10px 32px rgba(0,0,0,.5),0 0 26px rgba(217,183,114,.38)}
+.shiguang-launcher-mark{font-family:"Songti SC","STSong",serif;font-size:23px;line-height:1}
+#shiguang-overlay{position:fixed;inset:0;z-index:30000;background:rgba(5,4,10,.72);backdrop-filter:blur(7px);display:none;align-items:center;justify-content:center;padding:12px}
+#shiguang-overlay.open{display:flex}
+#shiguang-modal{width:min(680px,100%);height:min(92vh,980px);background:#0a0812;border:1px solid rgba(217,183,114,.55);box-shadow:0 25px 80px rgba(0,0,0,.65);display:flex;flex-direction:column;border-radius:8px;overflow:hidden}
+#shiguang-modal-head{height:44px;flex:0 0 44px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;color:#f2d89c;background:linear-gradient(180deg,#211a30,#130f1d);border-bottom:1px solid rgba(217,183,114,.24);font-family:"Songti SC","STSong",serif;letter-spacing:.18em;font-size:13px}
+.shiguang-head-actions{display:flex;gap:6px}.shiguang-head-actions button{width:30px;height:30px;border:1px solid rgba(217,183,114,.3);border-radius:4px;background:#171221;color:#d9b772;cursor:pointer;font-size:18px;line-height:1}
+.shiguang-head-actions button:hover{border-color:#d9b772;color:#f2d89c}
+#shiguang-frame{width:100%;height:100%;border:0;background:#0a0812}
+body.shiguang-lock{overflow:hidden!important}
+@media(max-width:600px){#shiguang-overlay{padding:0}#shiguang-modal{height:100dvh;width:100%;border-radius:0;border-left:0;border-right:0}#shiguang-launcher{right:14px;bottom:82px;width:48px;height:48px}}
