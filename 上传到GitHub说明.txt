@@ -1,0 +1,5 @@
+1. 新建公开 GitHub 仓库：shiguang-cast-fate
+2. 解压本包，把所有文件上传到仓库根目录。
+3. 根目录必须直接看到 manifest.json。
+4. 云酒馆扩展网址填写：https://github.com/你的用户名/shiguang-cast-fate
+5. 安装后刷新并启用“拾光 · 投命”。
