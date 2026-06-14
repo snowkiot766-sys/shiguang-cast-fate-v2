@@ -147,18 +147,18 @@ function bindEvents() {
     .forEach(name => { if (et[name]) es.on(et[name], refreshVisibility); });
 }
 
-export function onEnable() {
+function onEnable() {
   ensureUI();
   refreshVisibility();
 }
 
-export function onDisable() {
+function onDisable() {
   document.getElementById('shiguang-launcher')?.remove();
   document.getElementById('shiguang-overlay')?.remove();
   document.body.classList.remove('shiguang-lock');
 }
 
-export function onActivate() {
+function onActivate() {
   ensureUI();
 }
 
