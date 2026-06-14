@@ -195,8 +195,20 @@ if (document.readyState === 'loading') {
 (function shiguangLanterns() {
   const EXT = 'shiguang-cast-fate-v2';
   const BASE = `/scripts/extensions/third-party/${EXT}/`;
-  const LANTERNS = ['lantern1.png', 'lantern2.png', 'lantern3.png', 'lantern4.png'];
-  const BUTTERFLY = 'butterfly.png';
+  // —— 用真实文件名（手机上传后的乱码名），免去改名 ——
+  const BG       = 'DD0CA303-21FC-4D2F-9224-6D198248DE90.png'; // 朱砂命底图
+  const LANTERNS = [
+    '024FD395-42D8-4611-9B91-0E69A90E5D1B.png', // 红灯笼
+    '7DB27D9A-39B2-4F38-8190-5011541869E6.png', // 金织灯笼
+    'F2086F11-4F49-4246-9C96-2F9597AB2316.png', // 暖金灯笼
+    'B367DEC9-E21B-4D7C-9E1A-FE3CCAC1C4EF.png', // 金牡丹灯笼
+  ];
+  const BUTTERFLY = 'BA7EF39F-502E-4185-9CBE-D8DBA08146CC.png'; // 展翅蝶（化蝶）
+  const FIREFLY   = '30B1F8EC-2B8B-4532-8509-740ED021DC5C.png'; // 萤火环
+  const SWIRL     = '91BE0B64-77E0-4024-B715-609ADC27D6B9.png'; // 蓝蝶漩涡
+  const NIAN      = '4468733A-D6D5-4201-AFA4-1EEB78C51A54.png'; // 念
+  const SHI       = '125569F6-4477-4E10-9909-CF1313B6E00A.png'; // 世
+  const YI        = 'AC339CA9-6754-4CD3-B548-1193DDF14369.png'; // 一
   const HEIGHTS = [6, 22, 0, 16];   // 错落高度，可调
   const BAR_ID = 'shiguang-lantern-bar';
 
@@ -205,6 +217,11 @@ if (document.readyState === 'loading') {
     const s = document.createElement('style');
     s.id = 'shiguang-lantern-style';
     s.textContent = `
+      body{
+        background:url('${BASE}${BG}') center/cover fixed no-repeat,
+                  linear-gradient(160deg,#4a0d0d,#1a0e0c)!important;
+      }
+      #chat,#sheld{background:transparent!important;}
       #${BAR_ID}{position:fixed;top:46px;left:0;right:0;height:74px;z-index:9980;
         pointer-events:none;display:flex;justify-content:space-around;align-items:flex-start;
         padding:0 8px;overflow:visible;}
@@ -303,14 +320,14 @@ if (document.readyState === 'loading') {
         background-position:center;background-repeat:no-repeat;background-size:contain;
         filter:drop-shadow(0 1px 1px rgba(0,0,0,.25));
       }
-      #send_but::after{background-image:url('${BASE}nian.png');}        /* 念 */
-      #options_button::after{background-image:url('${BASE}yi.png');}     /* 一 */
-      #extensionsMenuButton::after{background-image:url('${BASE}shi.png');} /* 世 */
+      #send_but::after{background-image:url('${BASE}${NIAN}');}        /* 念 */
+      #options_button::after{background-image:url('${BASE}${YI}');}     /* 一 */
+      #extensionsMenuButton::after{background-image:url('${BASE}${SHI}');} /* 世 */
       /* 蓝蝶只缠在「世」上，适度大小 */
       #extensionsMenuButton::before{
         content:'';position:absolute;width:34px;height:48px;top:-18px;right:-9px;
         pointer-events:none;z-index:3;
-        background:url('${BASE}butterfly_swirl.png') center/contain no-repeat;
+        background:url('${BASE}${SWIRL}') center/contain no-repeat;
         filter:drop-shadow(0 1px 3px rgba(20,30,90,.5));
         animation:bflyWrap 3s ease-in-out infinite;transform-origin:bottom center;
       }
@@ -321,7 +338,7 @@ if (document.readyState === 'loading') {
       .mes .avatar img,.avatar img{border:1.5px solid rgba(232,196,106,.55)!important;border-radius:50%!important;}
       .mes .avatar::after,.avatar::after{
         content:''!important;position:absolute;inset:-9px;border-radius:50%;
-        background:url('${BASE}firefly_ring.png') center/contain no-repeat;
+        background:url('${BASE}${FIREFLY}') center/contain no-repeat;
         box-shadow:none!important;border:none!important;pointer-events:none;
         animation:fireflySpin 18s linear infinite;
       }
