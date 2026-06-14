@@ -93,6 +93,24 @@
   .opening p{font-size:13px;line-height:1.9;color:var(--silk-dim);font-weight:300;margin-bottom:10px;text-indent:2em}
   .opening p.last{color:var(--silk)}
 
+  .hud-i.pavilion{cursor:pointer;color:var(--gold-dim);transition:.2s}
+  .hud-i.pavilion:hover,.hud-i.pavilion:active{color:var(--gold-bright)}
+  .arclist{display:flex;flex-direction:column;gap:12px;margin-top:6px}
+  .arc-card{position:relative;border:1px solid var(--line);border-radius:6px;padding:14px 15px;background:linear-gradient(160deg,rgba(40,32,60,.55),rgba(22,18,34,.7));cursor:pointer;transition:.2s;overflow:hidden}
+  .arc-card:hover,.arc-card:active{border-color:var(--gold-dim);transform:translateY(-1px)}
+  .arc-card .ac-no{position:absolute;top:10px;right:12px;font-family:var(--serif);font-size:11px;letter-spacing:.2em;color:var(--gold-dim)}
+  .arc-card .ac-name{font-family:var(--serif);font-size:17px;color:var(--gold-bright);letter-spacing:.06em;margin-bottom:3px}
+  .arc-card .ac-type{font-size:11px;color:var(--silk-dim);letter-spacing:.14em;margin-bottom:9px}
+  .arc-card .ac-tg{font-size:12.5px;color:var(--silk);margin-bottom:8px}
+  .arc-card .ac-tg b{color:var(--gold-bright);font-weight:500}
+  .arc-card .ac-meta{display:flex;gap:14px;font-size:11px;color:var(--silk-dim);letter-spacing:.06em}
+  .arc-card .ac-meta em{color:var(--gold-dim);font-style:normal}
+  .arc-card .ac-acts{display:flex;gap:10px;margin-top:12px}
+  .arc-card .ac-go{flex:1;text-align:center;font-family:var(--serif);font-size:13px;letter-spacing:.1em;color:#1a1206;background:linear-gradient(180deg,var(--gold-bright),var(--gold-dim));padding:9px;border-radius:4px;cursor:pointer;font-weight:600}
+  .arc-card .ac-go:active{opacity:.85}
+  .arc-card .ac-del{font-size:12px;color:var(--silk-dim);padding:9px 14px;border:1px solid var(--line);border-radius:4px;letter-spacing:.1em;cursor:pointer}
+  .arc-card .ac-del:hover,.arc-card .ac-del:active{color:var(--cinnabar);border-color:var(--cinnabar)}
+  .arc-empty{text-align:center;color:var(--silk-dim);font-size:13px;letter-spacing:.1em;padding:40px 10px;line-height:2}
   .actions{display:flex;gap:10px;margin-top:16px;width:100%}
   .btn{flex:1;padding:13px 10px;border-radius:3px;cursor:pointer;font-family:var(--serif);font-size:14px;letter-spacing:.12em;transition:.2s;text-align:center;user-select:none}
   .btn.ghost{background:transparent;border:1px solid var(--gold-dim);color:var(--gold)}
@@ -169,6 +187,7 @@
     <span class="hud-i">轮回 <b id="hWorld">— 世</b></span>
     <span class="hud-i">积分 <b id="hScore">100</b></span>
     <span class="hud-i life">寿元 <b id="hLife">♥♥♥</b></span>
+    <span class="hud-i pavilion" onclick="openArchive()">轮回阁 <b id="hSaved">0</b> ▸</span>
   </div>
 
   <!-- ===== 投命视图 ===== -->
@@ -201,6 +220,7 @@
       <div class="actions">
         <div class="btn ghost" id="reroll" onclick="roll()">换一个</div>
         <div class="btn solid" id="enter" onclick="enterWorld()">确认进入此世 ▸</div>
+        <div class="btn solid" id="rollInfinite" onclick="roll()">🎲 无限流 · 再投一个未知之世</div>
       </div>
     </div>
   </section>
@@ -243,6 +263,19 @@
     <div class="actions">
       <div class="btn ghost" id="askAI" onclick="pushWorldToAI()">▶ 让 AI 开场</div>
       <div class="btn solid" id="nextLife" onclick="nextLife()">投命 · 下一世 ▸</div>
+    </div>
+  </section>
+
+  <!-- ===== 轮回阁视图 ===== -->
+  <section class="view" id="viewArchive">
+    <div class="banner">
+      <div class="be">轮 回 阁</div><hr>
+      <div class="bn" style="font-size:19px">已历诸世 · 随时归返</div>
+      <div class="bi" id="arcInfo">此处封存你走过的每一世，点开即可回到那一世继续。</div>
+    </div>
+    <div id="arcList" class="arclist"></div>
+    <div class="actions">
+      <div class="btn ghost" onclick="switchView('roll')">◂ 返回投命</div>
     </div>
   </section>
 
@@ -380,7 +413,27 @@ const han=n=>n<=20?NUM[n]:n;
 let rolling=false, current=null, worldNo=0;
 let score=100, life=3, aff=0;
 const selected=new Set();
-const bag=[];
+let bag=[];
+
+// ===== 存档持久化 =====
+const SAVE_KEY='shiguang_save_v1';
+let SAVES=[];            // 轮回阁：玩过的每一世
+let SEEN=[];             // 已出现世界签名，用于去重
+let resumingId=null;     // 当前正在续玩的存档id
+function persist(){
+  try{localStorage.setItem(SAVE_KEY,JSON.stringify({score,life,worldNo,bag,saves:SAVES,seen:SEEN.slice(-200)}));}catch(e){}
+}
+function loadSave(){
+  try{const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'{}');
+    if(typeof d.score==='number')score=d.score;
+    if(typeof d.life==='number')life=d.life;
+    if(typeof d.worldNo==='number')worldNo=d.worldNo;
+    if(Array.isArray(d.bag))bag=d.bag;
+    if(Array.isArray(d.saves))SAVES=d.saves;
+    if(Array.isArray(d.seen))SEEN=d.seen;
+  }catch(e){}
+}
+loadSave();
 
 const byId=id=>document.getElementById(id);
 const pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -391,11 +444,13 @@ function updateHUD(){
   byId('hWorld').textContent = worldNo>0 ? ("第 "+han(worldNo)+" 世") : "— 世";
   byId('hScore').textContent = score;
   byId('hLife').textContent = hearts(life);
+  const hs=byId('hSaved'); if(hs) hs.textContent=SAVES.length;
 }
 function toast(t){const el=byId('toast');el.textContent=t;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2800);}
 function switchView(name){
   byId('viewRoll').classList.toggle('active',name==='roll');
   byId('viewWorld').classList.toggle('active',name==='world');
+  byId('viewArchive').classList.toggle('active',name==='archive');
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -426,8 +481,79 @@ window.addEventListener('message',event=>{
   pending.resolve(data);
 });
 
+// ===== 无限流 · 世界生成器（本地·稳定·秒填档案） =====
+const GEN={
+ genre:[
+  {t:"古代宫廷",worlds:["凤栖梧","椒房殿","金阙辞","九重霜","朱墙记"],titles:["少年帝王","摄政王","太子","暗卫统领","质子殿下"],
+   ids:["将门遗孤，满门蒙冤，你藏身宫闱伺机翻案。","和亲弃妃，被困冷宫，却握着一桩旧朝秘辛。","顶替亡姐入宫的小宫女，身负一道不能说的密令。"],
+   wear:["玄色蟒纹锦袍，墨玉发冠","月白广袖深衣，腰悬羊脂玉","绛红描金朝服，指尖一枚扳指"]},
+  {t:"仙侠修真",worlds:["沧澜诀","青冥引","三生劫","碧落册","忘川记"],titles:["剑修魔尊","上古神君","宗门掌教","谪仙","狐族少主"],
+   ids:["天生废灵根的外门弟子，体内却封着一缕神魔残魂。","下山历劫的仙门弟子，命格逢七必死。","堕入魔道又被强行洗髓的散修，记忆缺了一角。"],
+   wear:["玄金法袍，周身缠绕雷纹","素白道袍，发束青玉冠","赤红劲装，腰佩噬血古剑"]},
+  {t:"武侠江湖",worlds:["听雪楼","刀尖渡","江湖远","醉春风","北斗引"],titles:["盟主","刀客","药王谷主","暗探首领","落魄世子"],
+   ids:["仇家灭门后流落江湖的孤女，怀里揣着半张藏宝图。","女扮男装闯荡的小镖师，背着一桩不能认的身世。","客栈打杂的丫头，无意撞破一场惊天阴谋。"],
+   wear:["玄衣束腰，背一柄无鞘刀","青衫磊落，腰间酒葫芦","暗纹劲装，袖中藏银针"]},
+  {t:"西方魔幻",worlds:["落日王庭","荆棘冠","龙裔纪","暮色塔","银契书"],titles:["龙裔皇子","大祭司","骑士团长","精灵王","暗影法师"],
+   ids:["被预言诅咒的平民少女，掌心浮现古老的契约纹。","流亡公国的末裔，血脉里沉睡着禁忌魔力。","神殿弃儿，却能听见诸神低语。"],
+   wear:["玄银重铠，披猩红披风","暗纹法袍，胸口悬一枚月长石","墨色皮甲，腰佩符文短刃"]},
+  {t:"星际科幻",worlds:["猎户残响","曦光号","零号星轨","深空契","银核纪"],titles:["舰队统帅","星际佣兵王","帝国少主","基因军官","机械先知"],
+   ids:["顶着假身份潜入旗舰的间谍，植入了一段会反噬的代码。","殖民星废墟里捡回一命的孤儿，体内有未知纳米群。","被通缉的天才工程师，握着能颠覆星图的坐标。"],
+   wear:["黑银制式军装，肩章泛冷光","贴身作战服，腕上一枚星核环","银灰风衣，颈后嵌着接口"]},
+  {t:"民国谍战",worlds:["孤岛烟","夜上海","暗河纪","沉香屑","谍影录"],titles:["特务处长","报馆少东","军统少校","地下党负责人","洋行买办"],
+   ids:["顶替身份打入敌营的女学生，怀里有一份名单。","舞女出身的情报员，欠着一条人命的旧债。","药铺老板的养女，暗中替地下党传递消息。"],
+   wear:["藏青长衫，金丝眼镜","笔挺西装，袖扣冷硬","风衣礼帽，皮鞋一尘不染"]},
+  {t:"克苏鲁神话",worlds:["雾港旧事","深潜者","黄昏礼","无名之城","旧日册"],titles:["神秘学者","教团祭司","调查员","渔镇继承人","梦境引路人"],
+   ids:["继承了诡异古宅的女继承人，开始听见墙里的低语。","失忆醒来的访客，口袋里有一张通往禁地的船票。","报社记者，追查一桩与海有关的连环失踪。"],
+   wear:["深灰风衣，口袋里揣着旧怀表","黑色长外套，领口别一枚贝壳胸针","素色衬衫，手腕缠着褪色绷带"]},
+  {t:"东方妖异",worlds:["山海拾遗","百鬼录","狐生记","碧落黄泉","聊斋引"],titles:["山神","狐妖少主","判官","画妖","守墓人"],
+   ids:["开棺人的女儿，天生阴阳眼，惹来一身妖缘。","误入妖市的凡人画师，被一只狐妖盯上。","客栈里的人间女子，夜里总有非人来叩门。"],
+   wear:["玄色绣鬼纹长袍，腰悬铜铃","青衫狐裘，眉心一点朱砂","素白丧服，袖口绣着往生咒"]},
+  {t:"赛博朋克",worlds:["霓虹废墟","义体纪","数据深渊","暗码城","逆熵者"],titles:["黑客之王","义体医生","财阀继承人","赏金猎人","AI觉醒体"],
+   ids:["脑后插着违禁芯片的街头骇客，记忆被人改过。","贫民窟长大的拆解工，捡到一具会说话的义体。","逃出实验室的克隆体，编号是唯一的名字。"],
+   wear:["黑色机能风衣，左眼一片义眼红光","破洞夹克，颈侧插着数据接口","银灰紧身衣，手臂是裸露的机械义肢"]},
+  {t:"盗墓秘境",worlds:["昆仑墟","鬼吹灯影","九幽阙","千年棺","秘藏录"],titles:["摸金校尉","古董商","守陵人后裔","考古队长","黑市掮客"],
+   ids:["盗墓世家的独女，背着一本残缺的祖传笔记。","为还债下墓的菜鸟，撞见了不该醒的东西。","博物馆研究员，被卷进一桩跨越百年的诅咒。"],
+   wear:["旧军绿夹克，腰挂洛阳铲","深褐皮衣，颈上一枚青铜锁","黑色冲锋衣，手电与匕首随身"]}
+ ],
+ names:["萧决","沈砚","裴照","陆昭","顾衍","谢临渊","江晚舟","墨珩","容珩","宋清","商隐","君无月","闻人皓","祁玦","薄言深","时砚"],
+ vibes:["病娇 · 偏执 · 占有欲极强","痞帅 · 嘴贱 · 心却很软","清冷 · 寡言 · 护短到骨子里","腹黑 · 算计 · 扮猪吃虎","疯批 · 危险 · 唯独对你温柔","温润 · 君子 · 绵里藏针","忠犬 · 炽烈 · 只认你一个","邪魅 · 玩世 · 关键时刻很可靠","禁欲 · 自律 · 一旦失控很可怕","骄矜 · 强势 · 偏要为你低头"],
+ looks:["眉眼锋利，薄唇凤眼，眼尾一点煞气","眉眼温润，笑起来人畜无害，眸底藏锋","清隽如雪，眼神却冷得像淬了冰","桃花眼含笑，骨子里却是冷的","俊美得有攻击性，下颌线利落","眉目疏淡，气质矜贵，难以接近"],
+ talks:["惜字如金，惯用命令句，偶尔危险地低笑","语调温和，话里有话，绵里藏针","懒洋洋拖着调子，撩人不自知","声音很冷，可对你时会不自觉放软","三句不离调侃，正经起来却让人心颤","咬字清晰克制，每个字都像在审讯"],
+ lines:["「抬起头。我的人，不许低着头。」","「别怕，天塌下来，我先顶着。」","「你最好别让我发现，你心里还装着别人。」","「跑什么？这辈子，你逃不出我手心了。」","「乖，到我身边来。」","「我可以为你，把这世道掀了。」"],
+ voices:["她身上那点秘密，今夜我必须查清楚——是谁的手，伸到了她身边。","这世上我谁都不信，偏偏栽在了她身上……可恨。","她以为我看不出她在装。也好，我就陪她演到底。","只要她在我身边，这条命、这江山，给她又何妨。","她若敢走，我便把整个世界拆给她看。"],
+ mains:["查清身世旧案，活着走出这一世的局。","在层层算计中护住想护的人，并全身而退。","解开缠在身上的诅咒／契约，找回失去的记忆。","在权谋与杀机里，攻略他，也救赎他。"],
+ deaths:["暴露身份 · 局中反噬 · 心动失控。死即回溯。","背叛 · 献祭 · 诅咒侵蚀。败则重来。","党争牵连 · 刺杀 · 情根深种反误事。死则回溯。"],
+ todos:[["探明随身信物的来历，莫露破绽","赴一场不得不去的宴，勿迟、勿独行","在人前递一句要命的旧案"],["稳住眼前人的疑心，别露马脚","拿到那样关键之物，趁夜","与接头人对上暗号，错一字即死"],["压下心动，先活下去","查清他温柔背后的图谋","为离开此世，留一条后路"]]
+};
+function sig(o){return o.type+'|'+o.name+'|'+o.tg;}
+function genWorld(){
+  const g=pick(GEN.genre);
+  let name,tgName,s,guard=0;
+  do{ name=pick(g.worlds); tgName=pick(GEN.names).replace(/[a-zа-яё]+/gi,'').slice(0,3)||"君无月";
+      s=g.t+'|'+name+'|'+tgName; guard++; }while(SEEN.includes(s)&&guard<12);
+  SEEN.push(s);
+  const diff=pick([["甜","甜宠"],["正","正常"],["狱","地狱"]]);
+  const tg={n:tgName,t:pick(g.titles),look:pick(GEN.looks),vibe:pick(GEN.vibes),
+            talk:pick(GEN.talks),wear:pick(g.wear),line:pick(GEN.lines),voice:pick(GEN.voices)};
+  const w={type:g.t,diff:diff,name:name,identity:pick(g.ids),mainline:pick(GEN.mains),
+           death:pick(GEN.deaths),todo:pick(GEN.todos),targets:[tg]};
+  w.open=(t)=>[`命盘流转，你睁眼落入《${name}》之中。`,`身侧那人正是${t.n}，${t.t}。`,`这一世，棋已落子——${t.line}`];
+  persist();
+  return w;
+}
+
 function directive(w,tg){
   return `[OOC：投命已定——进入《${w.name}》（${w.type}·难度${DIFF_LABEL[w.diff[0]]}），原主身份：${w.identity.replace(/<[^>]+>/g,'')}；攻略对象：${tg.n}（${tg.t}）。请严格遵守本卡文风规则与该世界文风，为此世写一段正式开场白，并自然衔接角色扮演。开场白上方输出<开场>块，结尾输出<状态>块。]`;
+}
+
+function randomDirective(){
+  const seed = Math.random().toString(36).slice(2,8).toUpperCase();
+  return `[OOC：无限流·随机投命（种子${seed}）。请你当场原创一个全新世界，要求如下：
+1. 时空题材彻底随机，从以下池子或你自创中任选其一，绝对避免末世丧尸等老套设定：古代宫廷／仙侠修真／武侠江湖／西方魔幻／星际科幻／赛博朋克／克苏鲁神话／民国谍战／东方神话／妖怪异闻／灵异悬疑／宫斗权谋／末法都市／剑与魔法／海上歌剧／废土机甲／聊斋志怪／盗墓秘境／蒸汽朋克／电竞职场／神话史诗……或任何你能想到的奇诡时空。
+2. 自行生成：世界名（书名号包裹）、题材标签、难度（甜／正常／地狱三选一）、"我"在此世的原主身份与困境、一位可攻略男主（姓名、外貌、性格、说话风格、着装、一句登场台词）、本世主线目标、死亡或失败的代价。
+3. 男主性格每次都要换新，不要总是高冷掌控型；可以是病娇、痞帅、温润、忠犬、腹黑、清冷、疯批、邪魅等任意一种，与世界气质相配。
+4. 严格遵守本卡文风规则与所生成世界的文风，写一段正式开场白，自然衔接角色扮演。开场白上方输出<开场>块（含世界名／身份／攻略对象／难度），结尾输出<状态>块。
+5. 这是一个全新轮回，与之前任何一世都不得重复，给我一个从未见过的时空。]`;
 }
 async function pushWorldToAI(){
   if(!current) return;
@@ -439,6 +565,14 @@ async function pushWorldToAI(){
     fb(txt,()=>{});
     toast((result.message||'自动发送失败')+' · 指令已复制');
   }
+}
+
+async function pushRandomWorld(){
+  const txt=randomDirective();
+  toast('🎲 正在开启一个未知之世…');
+  const result=await sendToExtension('enter-world',{directive:txt});
+  if(result.ok) toast(result.message||'轮回已启 · 看下方开场');
+  else { fb(txt,()=>{}); toast((result.message||'发送失败')+' · 指令已复制'); }
 }
 
 // 命盘符纹 / 星点
@@ -460,7 +594,7 @@ function roll(){
     if(e<dur)requestAnimationFrame(frame);else settle();})(start);
 }
 function settle(){
-  const w=pick(WORLDS),tg=pick(w.targets); current={w,tg}; renderPreview(w,tg);
+  const w=genWorld(),tg=w.targets[0]; current={w,tg}; resumingId=null; renderPreview(w,tg);
   stage.classList.remove('spinning'); core.classList.remove('rolling');
   cmd.textContent="换"; hint.textContent="再 投 一 个"; hint.style.opacity=1; rolling=false;
   result.classList.add('show'); result.scrollIntoView({behavior:'smooth',block:'nearest'});
@@ -483,8 +617,48 @@ function renderPreview(w,tg){
 function enterWorld(){
   if(!current) return;
   worldNo++; aff=6+Math.floor(Math.random()*18); selected.clear();
+  // 存进轮回阁
+  const {w,tg}=current;
+  const rec={id:'L'+Date.now(), no:worldNo, savedAt:Date.now(),
+    type:w.type, name:w.name, diff:w.diff, identity:w.identity, mainline:w.mainline,
+    death:w.death, todo:w.todo, tg:tg, aff:aff, bag:bag.slice(), cleared:false};
+  SAVES.unshift(rec); resumingId=rec.id;
+  if(SAVES.length>40) SAVES.length=40;
+  persist();
   renderWorld(); updateHUD(); switchView('world');
   pushWorldToAI();
+}
+// 续玩某一世
+function resumeLife(id){
+  const r=SAVES.find(x=>x.id===id); if(!r) return;
+  const w={type:r.type,name:r.name,diff:r.diff,identity:r.identity,mainline:r.mainline,death:r.death,todo:r.todo,targets:[r.tg]};
+  current={w,tg:r.tg}; resumingId=id; aff=r.aff||10; bag=r.bag?r.bag.slice():bag; selected.clear();
+  renderWorld(); updateHUD(); switchView('world');
+  toast('已归返《'+r.name+'》· 接着玩');
+}
+function deleteLife(id,e){
+  if(e){e.stopPropagation();}
+  SAVES=SAVES.filter(x=>x.id!==id); persist(); renderArchive(); updateHUD();
+  toast('已从轮回阁抹去此世');
+}
+function openArchive(){ renderArchive(); switchView('archive'); }
+function renderArchive(){
+  const box=byId('arcList');
+  if(!SAVES.length){ box.innerHTML='<div class="arc-empty">轮回阁尚空。<br>掷一次命，确认进入某一世，<br>那一世便会封存于此。</div>'; return; }
+  box.innerHTML=SAVES.map(r=>{
+    const dl=DIFF_LABEL[r.diff[0]]||r.diff[1]||'';
+    return `<div class="arc-card">
+      <div class="ac-no">第 ${han(r.no)} 世</div>
+      <div class="ac-name">《${r.name}》</div>
+      <div class="ac-type">${r.type} · 难度${dl}</div>
+      <div class="ac-tg">攻略 <b>${r.tg.n}</b> · ${r.tg.t}</div>
+      <div class="ac-meta"><span>好感 <em>${r.aff||0}/100</em></span><span>${r.cleared?'已通关':'进行中'}</span></div>
+      <div class="ac-acts">
+        <span class="ac-go" onclick="resumeLife('${r.id}')">▸ 回到此世</span>
+        <span class="ac-del" onclick="deleteLife('${r.id}',event)">移除</span>
+      </div>
+    </div>`;
+  }).join('');
 }
 function renderWorld(){
   const {w,tg}=current, dk=w.diff[0];
@@ -523,7 +697,7 @@ function buy(){
   const t=shopTotal(); if(t===0) return;
   if(score<t){ toast("积分不足 · 还差 "+(t-score)); return; }
   score-=t; const names=[]; selected.forEach(i=>{bag.push(SHOP[i].k.split(" · ")[0]);names.push(SHOP[i].k.split(" · ")[0]);});
-  selected.clear(); updateHUD(); renderShop();
+  selected.clear(); updateHUD(); renderShop(); persist();
   toast("已兑换 "+names.join("、")+" · 余额 "+score);
 }
 function settleWorld(w){
@@ -535,8 +709,12 @@ function settleWorld(w){
   return msg;
 }
 function nextLife(){
-  if(current){const msg=settleWorld(current.w);updateHUD();toast("结算 · "+msg);}
-  current=null; switchView('roll'); result.classList.remove('show');
+  if(current){
+    // 把本世进度写回轮回阁存档
+    if(resumingId){const r=SAVES.find(x=>x.id===resumingId); if(r){r.aff=aff;r.bag=bag.slice();r.cleared=true;}}
+    const msg=settleWorld(current.w);updateHUD();persist();toast("结算 · "+msg);
+  }
+  current=null; resumingId=null; switchView('roll'); result.classList.remove('show');
   cmd.textContent="投"; hint.textContent="掷 命"; hint.style.opacity=1;
   setTimeout(roll,560);
 }
