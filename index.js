@@ -47,7 +47,6 @@ async function sendWorldDirective(text) {
   const directive = String(text || '').trim();
   if (!directive) return { ok: false, message: '投命指令为空' };
 
-  // Quoted STscript argument prevents punctuation and spaces from being split.
   const escaped = directive.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
   const sent = await executeSlash(`/send "${escaped}"`);
   if (!sent) return { ok: false, message: '无法调用 /send，请确认云酒馆开放扩展与 STscript' };
@@ -79,6 +78,8 @@ function bindBridge() {
 }
 
 function ensureUI() {
+  alert('① ensureUI 开始执行');
+
   if (document.getElementById('shiguang-launcher')) return;
 
   const launcher = document.createElement('button');
@@ -89,6 +90,8 @@ function ensureUI() {
   launcher.innerHTML = '<span class="shiguang-launcher-mark">命</span>';
   launcher.addEventListener('click', openPanel);
   document.body.appendChild(launcher);
+
+  alert('② 按钮已添加到页面');
 
   const overlay = document.createElement('div');
   overlay.id = 'shiguang-overlay';
@@ -132,7 +135,7 @@ function closePanel() {
 function refreshVisibility() {
   const launcher = document.getElementById('shiguang-launcher');
   if (!launcher) return;
-  const visible = isShiguangCard();
+  const visible = true;
   launcher.classList.toggle('active-card', visible);
   launcher.style.display = visible ? 'grid' : 'none';
   if (!visible) closePanel();
