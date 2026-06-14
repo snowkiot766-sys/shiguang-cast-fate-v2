@@ -1,4 +1,4 @@
-const EXT_ID = 'shiguang-cast-fate';
+const EXT_ID = 'shiguang-cast-fate-v2';
 const PANEL_URL = `/scripts/extensions/third-party/${EXT_ID}/panel.html`;
 const BRIDGE_SOURCE = 'shiguang-cast-fate';
 let bridgeBound = false;
